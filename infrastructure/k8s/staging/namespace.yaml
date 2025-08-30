@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aicode-staging
+  labels:
+    name: aicode-staging
+    environment: staging
+    project: aicode-platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aicode-monitoring
+  labels:
+    name: aicode-monitoring
+    environment: staging
+    project: aicode-platform

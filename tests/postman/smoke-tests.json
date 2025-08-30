@@ -1,0 +1,442 @@
+{
+	"info": {
+		"name": "AiCode API Smoke Tests",
+		"description": "Basic smoke tests to verify API functionality after deployment",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"// Generate unique test data",
+					"pm.globals.set('test_email', `test-${Math.random().toString(36).substring(7)}@example.com`);",
+					"pm.globals.set('test_password', 'TestPassword123!');",
+					"pm.globals.set('test_name', 'Smoke Test User');"
+				],
+				"type": "text/javascript"
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Health check returns 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Health check returns correct status', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.status).to.eql('OK');",
+							"});",
+							"",
+							"pm.test('Response time is less than 1000ms', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(1000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			}
+		},
+		{
+			"name": "User Registration",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Registration successful', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Registration returns user data', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.true;",
+							"    pm.expect(responseJson.data.user).to.be.an('object');",
+							"    pm.expect(responseJson.data.tokens).to.be.an('object');",
+							"});",
+							"",
+							"pm.test('Tokens are present', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.data.tokens.accessToken).to.be.a('string');",
+							"    pm.expect(responseJson.data.tokens.refreshToken).to.be.a('string');",
+							"    ",
+							"    // Store auth token for subsequent requests",
+							"    pm.globals.set('auth_token', responseJson.data.tokens.accessToken);",
+							"});",
+							"",
+							"pm.test('Response time is acceptable', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"{{test_password}}\",\n    \"name\": \"{{test_name}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/register",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"register"
+					]
+				}
+			}
+		},
+		{
+			"name": "User Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Login successful', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Login returns tokens', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.true;",
+							"    pm.expect(responseJson.data.tokens).to.be.an('object');",
+							"    pm.expect(responseJson.data.tokens.accessToken).to.be.a('string');",
+							"    pm.expect(responseJson.data.tokens.refreshToken).to.be.a('string');",
+							"    ",
+							"    // Update auth token",
+							"    pm.globals.set('auth_token', responseJson.data.tokens.accessToken);",
+							"});",
+							"",
+							"pm.test('User data is returned', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.data.user).to.be.an('object');",
+							"    pm.expect(responseJson.data.user.email).to.eql(pm.globals.get('test_email'));",
+							"});",
+							"",
+							"pm.test('Response time is fast', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(1000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"{{test_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"login"
+					]
+				}
+			}
+		},
+		{
+			"name": "Get User Profile",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Profile access successful', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Profile data is correct', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.true;",
+							"    pm.expect(responseJson.data.user).to.be.an('object');",
+							"    pm.expect(responseJson.data.user.email).to.eql(pm.globals.get('test_email'));",
+							"    pm.expect(responseJson.data.user.name).to.eql(pm.globals.get('test_name'));",
+							"});",
+							"",
+							"pm.test('Sensitive data is not exposed', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.data.user.password).to.be.undefined;",
+							"});",
+							"",
+							"pm.test('Response time is fast', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(500);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/users/profile",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"profile"
+					]
+				}
+			}
+		},
+		{
+			"name": "Unauthorized Access",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Unauthorized access blocked', function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test('Error response format is correct', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.false;",
+							"    pm.expect(responseJson.error).to.be.a('string');",
+							"});",
+							"",
+							"pm.test('Response time is fast', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/users/profile",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"profile"
+					]
+				}
+			}
+		},
+		{
+			"name": "Invalid Endpoint",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Invalid endpoint returns 404', function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test('Error response format is correct', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.false;",
+							"    pm.expect(responseJson.error).to.be.a('string');",
+							"});",
+							"",
+							"pm.test('Response time is fast', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/invalid-endpoint",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"invalid-endpoint"
+					]
+				}
+			}
+		},
+		{
+			"name": "Rate Limiting",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Response is valid', function () {",
+							"    // Should be either success (200) or rate limited (429)",
+							"    pm.expect([200, 429]).to.include(pm.response.code);",
+							"});",
+							"",
+							"pm.test('Rate limit headers are present', function () {",
+							"    pm.expect(pm.response.headers.get('X-RateLimit-Remaining')).to.exist;",
+							"});",
+							"",
+							"if (pm.response.code === 429) {",
+							"    pm.test('Rate limit response format is correct', function () {",
+							"        const responseJson = pm.response.json();",
+							"        pm.expect(responseJson.success).to.be.false;",
+							"        pm.expect(responseJson.error).to.include('rate limit');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/users/profile",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"profile"
+					]
+				}
+			}
+		},
+		{
+			"name": "Logout",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Logout successful', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Logout response format is correct', function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.true;",
+							"    pm.expect(responseJson.message).to.be.a('string');",
+							"});",
+							"",
+							"// Clear auth token",
+							"pm.globals.unset('auth_token');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/auth/logout",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"logout"
+					]
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
