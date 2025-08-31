@@ -1,9 +1,0 @@
-node_modules
-dist
-coverage
-.env*
-*.log
-*.lock
-.git
-.DS_Store
-prisma/migrations
