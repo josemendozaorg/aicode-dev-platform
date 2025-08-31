@@ -3,15 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/environment';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { userStorage } from '../utils/storage';
 
 const router = Router();
-
-// Mock user storage (in real app, use database)
-const users: Array<{
-  id: string;
-  email: string;
-  password: string;
-}> = [];
 
 // Register route
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
@@ -27,7 +21,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Check if user exists
-    const existingUser = users.find(u => u.email === email);
+    const existingUser = await userStorage.findUserByEmail(email);
     if (existingUser) {
       res.status(409).json({
         success: false,
@@ -46,7 +40,8 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       password: hashedPassword,
     };
     
-    users.push(user);
+    // Save user to file storage
+    await userStorage.addUser(user);
 
     // Generate token
     const token = jwt.sign(
@@ -64,6 +59,15 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
+    // Handle storage errors specifically
+    if (error instanceof Error && error.message.includes('User already exists')) {
+      res.status(409).json({
+        success: false,
+        message: 'User already exists',
+      });
+      return;
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -85,7 +89,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Find user
-    const user = users.find(u => u.email === email);
+    const user = await userStorage.findUserByEmail(email);
     if (!user) {
       res.status(401).json({
         success: false,
