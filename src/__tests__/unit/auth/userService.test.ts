@@ -10,9 +10,22 @@ import { UserRepository } from '@/database/userRepository';
 import { hashPassword } from '@/auth/utils/passwordUtils';
 import { generateTokens } from '@/auth/utils/jwtUtils';
 
-const mockUserRepository = UserRepository as jest.Mocked<typeof UserRepository>;
+// Create mock instances
+const mockUserRepositoryInstance = {
+  create: jest.fn(),
+  findById: jest.fn(),
+  findByEmail: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  count: jest.fn(),
+  findActiveUsers: jest.fn(),
+};
+
 const mockHashPassword = hashPassword as jest.MockedFunction<typeof hashPassword>;
 const mockGenerateTokens = generateTokens as jest.MockedFunction<typeof generateTokens>;
+
+// Mock the UserRepository constructor
+(UserRepository as jest.Mock).mockImplementation(() => mockUserRepositoryInstance);
 
 describe('UserService', () => {
   let userService: UserService;
@@ -50,18 +63,18 @@ describe('UserService', () => {
         refreshToken: 'refresh-token',
       };
 
-      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepositoryInstance.findByEmail.mockResolvedValue(null);
       mockHashPassword.mockResolvedValue(hashedPassword);
-      mockUserRepository.create.mockResolvedValue(mockUser);
+      mockUserRepositoryInstance.create.mockResolvedValue(mockUser);
       mockGenerateTokens.mockReturnValue(mockTokens);
 
       // Act
       const result = await userService.registerUser(validRegistrationData);
 
       // Assert
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
+      expect(mockUserRepositoryInstance.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
       expect(mockHashPassword).toHaveBeenCalledWith(validRegistrationData.password);
-      expect(mockUserRepository.create).toHaveBeenCalledWith({
+      expect(mockUserRepositoryInstance.create).toHaveBeenCalledWith({
         email: validRegistrationData.email,
         firstName: validRegistrationData.firstName,
         lastName: validRegistrationData.lastName,
@@ -92,21 +105,21 @@ describe('UserService', () => {
         updatedAt: new Date(),
       };
 
-      mockUserRepository.findByEmail.mockResolvedValue(existingUser);
+      mockUserRepositoryInstance.findByEmail.mockResolvedValue(existingUser);
 
       // Act & Assert
       await expect(userService.registerUser(validRegistrationData))
         .rejects
         .toThrow('User with this email already exists');
 
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
+      expect(mockUserRepositoryInstance.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
       expect(mockHashPassword).not.toHaveBeenCalled();
-      expect(mockUserRepository.create).not.toHaveBeenCalled();
+      expect(mockUserRepositoryInstance.create).not.toHaveBeenCalled();
     });
 
     it('should throw error if password hashing fails', async () => {
       // Arrange
-      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepositoryInstance.findByEmail.mockResolvedValue(null);
       mockHashPassword.mockRejectedValue(new Error('Hashing failed'));
 
       // Act & Assert
@@ -114,27 +127,27 @@ describe('UserService', () => {
         .rejects
         .toThrow('Failed to process user registration');
 
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
+      expect(mockUserRepositoryInstance.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
       expect(mockHashPassword).toHaveBeenCalledWith(validRegistrationData.password);
-      expect(mockUserRepository.create).not.toHaveBeenCalled();
+      expect(mockUserRepositoryInstance.create).not.toHaveBeenCalled();
     });
 
     it('should throw error if user creation fails', async () => {
       // Arrange
       const hashedPassword = 'hashed-password';
       
-      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepositoryInstance.findByEmail.mockResolvedValue(null);
       mockHashPassword.mockResolvedValue(hashedPassword);
-      mockUserRepository.create.mockRejectedValue(new Error('Database error'));
+      mockUserRepositoryInstance.create.mockRejectedValue(new Error('Database error'));
 
       // Act & Assert
       await expect(userService.registerUser(validRegistrationData))
         .rejects
         .toThrow('Failed to create user account');
 
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
+      expect(mockUserRepositoryInstance.findByEmail).toHaveBeenCalledWith(validRegistrationData.email);
       expect(mockHashPassword).toHaveBeenCalledWith(validRegistrationData.password);
-      expect(mockUserRepository.create).toHaveBeenCalled();
+      expect(mockUserRepositoryInstance.create).toHaveBeenCalled();
     });
   });
 
@@ -153,26 +166,26 @@ describe('UserService', () => {
         updatedAt: new Date(),
       };
 
-      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockUserRepositoryInstance.findById.mockResolvedValue(mockUser);
 
       // Act
       const result = await userService.getUserById(userId);
 
       // Assert
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepositoryInstance.findById).toHaveBeenCalledWith(userId);
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user not found', async () => {
       // Arrange
       const userId = 'non-existent-user';
-      mockUserRepository.findById.mockResolvedValue(null);
+      mockUserRepositoryInstance.findById.mockResolvedValue(null);
 
       // Act
       const result = await userService.getUserById(userId);
 
       // Assert
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
+      expect(mockUserRepositoryInstance.findById).toHaveBeenCalledWith(userId);
       expect(result).toBeNull();
     });
   });
@@ -192,26 +205,26 @@ describe('UserService', () => {
         updatedAt: new Date(),
       };
 
-      mockUserRepository.findByEmail.mockResolvedValue(mockUser);
+      mockUserRepositoryInstance.findByEmail.mockResolvedValue(mockUser);
 
       // Act
       const result = await userService.getUserByEmail(email);
 
       // Assert
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(email);
+      expect(mockUserRepositoryInstance.findByEmail).toHaveBeenCalledWith(email);
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user not found', async () => {
       // Arrange
       const email = 'nonexistent@example.com';
-      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepositoryInstance.findByEmail.mockResolvedValue(null);
 
       // Act
       const result = await userService.getUserByEmail(email);
 
       // Assert
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(email);
+      expect(mockUserRepositoryInstance.findByEmail).toHaveBeenCalledWith(email);
       expect(result).toBeNull();
     });
   });

@@ -1,6 +1,10 @@
 import { config } from 'dotenv';
 
-// Load environment variables
+// Load environment variables based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV || 'development';
+config({ path: `.env.${nodeEnv}` });
+
+// Also load base .env file if it exists
 config();
 
 export const env = {

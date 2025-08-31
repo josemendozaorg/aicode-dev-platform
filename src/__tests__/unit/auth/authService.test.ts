@@ -12,11 +12,9 @@ import { verifyPassword } from '@/auth/utils/passwordUtils';
 import { generateTokens, verifyRefreshToken } from '@/auth/utils/jwtUtils';
 import { TokenRepository } from '@/database/tokenRepository';
 
-const mockUserService = UserService as jest.Mocked<typeof UserService>;
 const mockVerifyPassword = verifyPassword as jest.MockedFunction<typeof verifyPassword>;
 const mockGenerateTokens = generateTokens as jest.MockedFunction<typeof generateTokens>;
 const mockVerifyRefreshToken = verifyRefreshToken as jest.MockedFunction<typeof verifyRefreshToken>;
-const mockTokenRepository = TokenRepository as jest.Mocked<typeof TokenRepository>;
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -34,8 +32,8 @@ describe('AuthService', () => {
       revokeAllUserTokens: jest.fn(),
     };
 
-    mockUserService.mockImplementation(() => mockUserServiceInstance);
-    mockTokenRepository.mockImplementation(() => mockTokenRepositoryInstance);
+    (UserService as jest.Mock).mockImplementation(() => mockUserServiceInstance);
+    (TokenRepository as jest.Mock).mockImplementation(() => mockTokenRepositoryInstance);
 
     authService = new AuthService();
     jest.clearAllMocks();

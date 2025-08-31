@@ -13,9 +13,8 @@ import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { env } from '@/config/environment';
 import { logger } from '@/config/logger';
 
-// Import routes (will be created next)
-// import authRoutes from '@/routes/auth';
-// import healthRoutes from '@/routes/health';
+// Import routes
+import authRoutes from '@/routes/auth';
 
 export const createApp = (): Application => {
   const app = express();
@@ -66,8 +65,7 @@ export const createApp = (): Application => {
   });
 
   // API routes
-  // app.use('/api/auth', authRoutes);
-  // app.use('/api/health', healthRoutes);
+  app.use('/api/auth', authRoutes);
 
   // Catch 404 errors
   app.use(notFoundHandler);
